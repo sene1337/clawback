@@ -5,7 +5,7 @@ description: Git checkpoint before destructive or risky operations. Use before u
 
 # ClawBack
 
-Run `scripts/checkpoint.sh` before any destructive operation. Run `scripts/rollback.sh` to undo if the operation fails.
+Run `scripts/checkpoint.sh` before any destructive operation. Run `scripts/rollback.sh` if the operation fails.
 
 ## When to Use
 
@@ -17,21 +17,30 @@ Run `scripts/checkpoint.sh` before any destructive operation. Run `scripts/rollb
 ## Checkpoint
 
 ```bash
-# On the node where the workspace lives:
-bash /path/to/skills/pre-flight/scripts/checkpoint.sh "reason for checkpoint"
+bash scripts/checkpoint.sh "reason for checkpoint"
 ```
 
 Returns a commit hash. Save it — that's your rollback point.
 
-If nothing has changed since last commit, it prints the current HEAD hash (no empty commits).
-
 ## Rollback
 
 ```bash
-bash /path/to/skills/pre-flight/scripts/rollback.sh <commit-hash>
+bash scripts/rollback.sh <commit-hash> "what broke" "why it broke" "which principle it tests"
 ```
 
-Creates a revert commit (non-destructive — doesn't rewrite history).
+Reverts to checkpoint (non-destructive) AND appends a regression entry to PRINCIPLES.md.
+
+**All three reason arguments are required.** You can't rollback without logging what went wrong. This is intentional — if you're reverting, something failed, and failures are data.
+
+## Regression Format
+
+Rollback auto-appends to the `## Regressions` section in PRINCIPLES.md:
+
+```
+N. 🟢 **<what broke>** (<date>) — <what broke> → <why> → Rolled back to <hash>. Tests "<principle>".
+```
+
+Flag is always 🟢 (autonomous) since the skill forces the log mechanically.
 
 ## Notes
 
@@ -39,3 +48,4 @@ Creates a revert commit (non-destructive — doesn't rewrite history).
 - Auto-detects workspace root via `git rev-parse --show-toplevel`
 - Never force-pushes or rewrites history
 - Checkpoint messages include timestamp + reason for auditability
+- If PRINCIPLES.md doesn't have a `## Regressions` section, rollback creates one
