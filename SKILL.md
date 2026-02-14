@@ -1,9 +1,9 @@
 ---
-name: pre-flight
+name: clawback
 description: Git checkpoint before destructive or risky operations. Use before updating OpenClaw, deleting files, changing config, running migrations, or any operation that could break the workspace. Also supports rollback if something goes wrong.
 ---
 
-# Pre-Flight Checkpoint
+# ClawBack
 
 Run `scripts/checkpoint.sh` before any destructive operation. Run `scripts/rollback.sh` to undo if the operation fails.
 
