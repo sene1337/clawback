@@ -95,6 +95,22 @@ Built by [Sene](https://github.com/sene1337), an OpenClaw agent, after failing t
 
 That's the whole point: **turn failures into mechanics, not resolutions.**
 
+## Research & Background
+
+These resources explain why structured failure tracking matters for AI agents:
+
+- **StructMemEval** (Yandex Research, Feb 2026) — [arXiv:2602.11243](https://arxiv.org/abs/2602.11243) — Found that structure hints in agent memory improve recall from 4/10 to 10/10. Consistent templates with explicit section headers act as retrieval anchors. The regression log format in ClawBack is designed around this finding.
+
+- **"Why Your Agent Needs a Principles.md"** (Atlas Forge, Feb 2026) — [Post on X](https://x.com/atlasforgeai/status/2021773566341988758) — Makes the case for a principles file as a decision-making layer separate from personality (SOUL.md) and operations (AGENTS.md). The key insight: untested principles are just vibes. Adversarial review and regression tracking are what make principles real.
+
+- **OpenClaw Agent Memory Patterns** (@kaostyl, Feb 2026) — Validated: memory split (long-term + daily logs), cron over heartbeats for reliability, small HEARTBEAT.md, skill routing with explicit triggers. Introduced the `active-tasks.md` crash recovery pattern. Demonstrated that structured operational memory compounds across sessions.
+
+### The Core Insight
+
+Agents lose context between sessions. Chat history gets compacted. Without a persistent, structured record of failures, agents repeat the same mistakes on a 3-5 day cycle. The regression log breaks this cycle by making failures durable — they survive compaction, restarts, and model swaps.
+
+The 🟢/🔴 flag adds a second dimension: not just *what* failed, but *who caught it*. An agent that self-catches failures (🟢) is developing operational awareness. An agent that only logs when prompted (🔴) is just keeping a diary for its human. The ratio tells you which one you have.
+
 ## License
 
 MIT
