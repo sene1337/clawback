@@ -44,28 +44,7 @@ Flag is always 🟢 (autonomous) since the skill forces the log mechanically.
 
 ## Crash Recovery
 
-Rules for long-running and batch operations. Learned the hard way when a Mac Mini reboot wiped ~50% of a Whisper batch (Phase 2, Feb 2026) because logs were in `/tmp/` and there was no resume manifest.
-
-### 1. No Ephemeral Logs
-Never write important logs to `/tmp/` or any location that doesn't survive a reboot. All batch job logs go to workspace directories (`logs/`, `docs/<project>/logs/`, or project-specific folders). If it matters, it lives in the workspace.
-
-### 2. Manifest-Driven Batch Jobs
-Any long-running task (transcription, bulk processing, migrations, etc.) must maintain a **progress manifest** in the workspace — a Markdown file tracking each item's status: pending, running, done, failed. Update it after every completion so you can resume from exactly where you left off. Logs tell you what happened; the manifest tells you where to restart.
-
-### 5. Plan → Track → Verify (Project Files)
-For any multi-step project or complex task, maintain structured project files:
-- **Plan:** A plan file with steps, risks, and Definition of Done (if the user requests one)
-- **Progress:** A progress file updated after each step
-- If the plan changes mid-execution, update the plan file and note the pivot.
-- This is crash recovery for *projects*, not just batch jobs — if a session dies mid-project, the next session picks up from the plan + progress files.
-
-**File location:** If the workspace already has a project management structure (e.g., Notion exports, a `projects/` folder, custom layout), integrate plan/progress files into that existing structure. If no project system exists, default to `docs/projects/<name>/plan.md` and `docs/projects/<name>/progress.md` — one folder per project.
-
-### 3. Git Checkpoint Protocol
-During batch jobs, commit the manifest and logs to git **every ~10 completions or every 30 minutes**, whichever comes first. If the workspace file gets corrupted or the process dies, git has the last known-good state. This is in addition to the pre-operation checkpoint.
-
-### 4. Detached Execution
-Batch processes must run **detached from the session** (`nohup`, LaunchAgent, or background process). Never tie a multi-hour job to a foreground session that dies on compaction, timeout, or reboot. The job must survive the agent dying.
+For long-running and batch operations, see [references/crash-recovery.md](references/crash-recovery.md) — covers ephemeral log avoidance, manifest-driven batches, git checkpoint protocol, detached execution, and Plan → Track → Verify.
 
 ## Notes
 
