@@ -81,6 +81,26 @@ bash skills/clawback/scripts/rollback.sh <hash> "what broke" "why" "principle te
 # Reverts files AND logs regression to PRINCIPLES.md
 ```
 
+## Crash Recovery
+
+**Added in v1.3** after a Mac Mini reboot wiped ~50% of a Whisper transcription batch. The logs were in `/tmp/`, there was no resume manifest, and the job was tied to a foreground session. Every mistake you can make with a long-running batch job, we made it.
+
+Four rules for any batch or long-running operation:
+
+### 1. No Ephemeral Logs
+Never write logs to `/tmp/` or anywhere that doesn't survive a reboot. Batch job logs belong in the workspace (`logs/`, `docs/<project>/logs/`). If it matters, it lives where git can see it.
+
+### 2. Manifest-Driven Batch Jobs
+Maintain a progress manifest (Markdown table) tracking each item: pending, running, done, failed. Update after every completion. Logs tell you what happened — the manifest tells you where to resume.
+
+### 3. Periodic Git Checkpoints
+During batch jobs, commit the manifest and logs every **~10 completions or 30 minutes** (whichever comes first). Git becomes your last-known-good state even if the workspace file gets corrupted mid-run.
+
+### 4. Detached Execution
+Batch processes run detached (`nohup`, LaunchAgent, background). Never tie a multi-hour job to a session that dies on compaction, timeout, or reboot. The job must survive the agent dying.
+
+These aren't suggestions — they're the rules that would have saved us hours of re-transcription.
+
 ## Design Principles
 
 - **Zero dependencies** — just bash + git
