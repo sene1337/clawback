@@ -52,6 +52,15 @@ Never write important logs to `/tmp/` or any location that doesn't survive a reb
 ### 2. Manifest-Driven Batch Jobs
 Any long-running task (transcription, bulk processing, migrations, etc.) must maintain a **progress manifest** in the workspace — a Markdown file tracking each item's status: pending, running, done, failed. Update it after every completion so you can resume from exactly where you left off. Logs tell you what happened; the manifest tells you where to restart.
 
+### 5. Plan → Track → Verify (Project Files)
+For any multi-step project or complex task, maintain structured project files:
+- **Plan:** A plan file with steps, risks, and Definition of Done (if the user requests one)
+- **Progress:** A progress file updated after each step
+- If the plan changes mid-execution, update the plan file and note the pivot.
+- This is crash recovery for *projects*, not just batch jobs — if a session dies mid-project, the next session picks up from the plan + progress files.
+
+**File location:** If the workspace already has a project management structure (e.g., Notion exports, a `projects/` folder, custom layout), integrate plan/progress files into that existing structure. If no project system exists, default to `docs/projects/<name>/plan.md` and `docs/projects/<name>/progress.md` — one folder per project.
+
 ### 3. Git Checkpoint Protocol
 During batch jobs, commit the manifest and logs to git **every ~10 completions or every 30 minutes**, whichever comes first. If the workspace file gets corrupted or the process dies, git has the last known-good state. This is in addition to the pre-operation checkpoint.
 
