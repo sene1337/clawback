@@ -178,6 +178,35 @@ Daily logs (`memory/YYYY-MM-DD.md`) are **standup updates, not debug transcripts
 - Pending: LaunchAgent for auto-start, VAD chunk size fix
 ```
 
+## Context Hygiene
+
+Your context window is a finite, non-renewable resource within a session. Treat it like RAM — fill it and you crash.
+
+### The Rule
+
+**If a tool result is large and you need the data, write it to a file immediately.** Don't hold it in context hoping to use it later. Extract what you need, save it, move on.
+
+### Context Budget
+
+- **Total context:** 200K tokens (~800K chars)
+- **Compaction reserve:** ~80K tokens
+- **Usable working memory:** ~120K tokens (~480K chars)
+- **Single web_fetch result:** 50-400K chars (can be 25-80% of your budget in one call)
+
+### Warning Signs
+
+You're about to blow context if:
+- You've done 3+ web_fetch calls without writing results to disk
+- You're holding multiple large tool results while planning what to do with them
+- You're in a long session with lots of back-and-forth AND large tool results
+
+### What To Do
+
+1. **Write to disk immediately.** After any large tool result, extract the data you need and save it to a file.
+2. **Batch external calls.** 50 URLs? Do 5-10 at a time with disk writes between batches.
+3. **Reference, don't repeat.** Once data is in a file, reference the file path — don't paste the contents back.
+4. **Checkpoint before heavy operations.** If a batch job might crash, checkpoint first so you can resume.
+
 ## .gitignore Rules
 
 Every workspace should have these in `.gitignore`:
