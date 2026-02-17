@@ -1,5 +1,5 @@
 #!/bin/bash
-# ClawBack setup — bootstraps PRINCIPLES.md with a Regressions section.
+# ClawBack setup — bootstraps docs/ops/regressions.md for regression logging.
 # Safe to run multiple times — won't overwrite existing content.
 
 set -euo pipefail
@@ -11,26 +11,23 @@ if [ -z "$WORKSPACE" ]; then
   exit 1
 fi
 
-PRINCIPLES="$WORKSPACE/PRINCIPLES.md"
+REGRESSIONS="$WORKSPACE/docs/ops/regressions.md"
 
-if [ -f "$PRINCIPLES" ]; then
-  if grep -q "^## Regressions" "$PRINCIPLES"; then
-    echo "SETUP: PRINCIPLES.md already has a Regressions section. Nothing to do."
-    exit 0
-  else
-    printf "\n\n## Regressions\n\nFailures logged against the principle they tested. Format: what broke → why → what changed. Flag: 🔴 prompted (human caught it) | 🟢 autonomous (self-caught).\n" >> "$PRINCIPLES"
-    echo "SETUP: Added Regressions section to existing PRINCIPLES.md"
-  fi
-else
-  cat > "$PRINCIPLES" << 'EOF'
-# PRINCIPLES.md
-
-Operating principles for this agent. Add your own — these are just the starting structure.
-
-## Regressions
-
-Failures logged against the principle they tested. Format: what broke → why → what changed. Flag: 🔴 prompted (human caught it) | 🟢 autonomous (self-caught).
-
-EOF
-  echo "SETUP: Created PRINCIPLES.md with Regressions section"
+if [ -f "$REGRESSIONS" ]; then
+  echo "SETUP: docs/ops/regressions.md already exists. Nothing to do."
+  exit 0
 fi
+
+mkdir -p "$(dirname "$REGRESSIONS")"
+cat > "$REGRESSIONS" << 'EOF'
+# Regressions
+
+Failures logged against the principle they tested. Format: what broke → why → what changed.
+Flag: 🔴 prompted (human caught it) | 🟢 autonomous (self-caught).
+
+---
+
+**Policy:** Active file holds last 10. Older entries archived to `regression-archive.md`.
+EOF
+
+echo "SETUP: Created docs/ops/regressions.md"

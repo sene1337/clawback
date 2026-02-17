@@ -11,7 +11,7 @@ WHY="${3:-}"
 PRINCIPLE="${4:-}"
 FLAG="🟢"
 
-# Check for --brad flag in any position
+# Check for --prompted flag in any position
 for arg in "$@"; do
   if [ "$arg" = "--prompted" ]; then
     FLAG="🔴"
@@ -51,50 +51,67 @@ TIMESTAMP=$(date +%Y-%m-%d-%H%M)
 git read-tree "$TARGET"
 git checkout-index -a -f
 
-# Clean untracked files created after the checkpoint (safe rollback)
-git clean -fd --quiet
+# Clean untracked files created after the checkpoint
+# Only clean files that were added after the target commit, not all untracked files
+git diff --name-only --diff-filter=A "$TARGET" HEAD 2>/dev/null | while read -r f; do
+  [ -f "$f" ] && rm -f "$f"
+done
 
 git add -A
 
 # --- Log regression to docs/ops/regressions.md ---
 REGRESSIONS="$WORKSPACE/docs/ops/regressions.md"
 
-if [ -f "$REGRESSIONS" ]; then
-  # Find the highest regression number — scoped to numbered list items only
-  LAST_NUM=$(grep -oE '^[0-9]+\.' "$REGRESSIONS" | tail -1 | tr -d '.' || echo "0")
-  if [ -z "$LAST_NUM" ]; then LAST_NUM=0; fi
-  NEXT_NUM=$((LAST_NUM + 1))
+# Create regressions file if it doesn't exist
+if [ ! -f "$REGRESSIONS" ]; then
+  mkdir -p "$(dirname "$REGRESSIONS")"
+  cat > "$REGRESSIONS" << 'HEREDOC'
+# Regressions
 
-  REGRESSION_LINE="${NEXT_NUM}. ${FLAG} **${WHAT}** (${TODAY}) — ${WHAT} → ${WHY} → Rolled back to ${TARGET}. Tests \"${PRINCIPLE}\"."
+Failures logged against the principle they tested. Format: what broke → why → what changed.
+Flag: 🔴 prompted (human caught it) | 🟢 autonomous (self-caught).
 
-  # Insert before the policy line at the bottom
-  if grep -q "^\*\*Policy:\*\*" "$REGRESSIONS"; then
-    # Insert before the separator + policy
-    awk -v entry="$REGRESSION_LINE" '
-      /^---$/ && !inserted { print entry; print ""; inserted=1 }
-      { print }
-    ' "$REGRESSIONS" > "${REGRESSIONS}.tmp" && mv "${REGRESSIONS}.tmp" "$REGRESSIONS"
-  else
-    # Just append
-    echo "$REGRESSION_LINE" >> "$REGRESSIONS"
-  fi
+---
 
-  echo "REGRESSION: Logged #${NEXT_NUM} (${FLAG}) to docs/ops/regressions.md"
+**Policy:** Active file holds last 10. Older entries archived to `regression-archive.md`.
+HEREDOC
+  echo "SETUP: Created docs/ops/regressions.md"
+fi
 
-  # --- Auto-archive if over 10 ---
-  ENTRY_COUNT=$(grep -cE '^[0-9]+\.' "$REGRESSIONS" || echo "0")
-  if [ "$ENTRY_COUNT" -gt 10 ]; then
-    ARCHIVE="$WORKSPACE/docs/ops/regression-archive.md"
-    # Move the oldest entry (first numbered line) to archive
-    OLDEST=$(grep -m1 -E '^[0-9]+\.' "$REGRESSIONS")
-    echo "$OLDEST" >> "$ARCHIVE"
-    # Remove the oldest entry from active file
-    grep -m1 -n -E '^[0-9]+\.' "$REGRESSIONS" | cut -d: -f1 | xargs -I{} sed -i '' '{}d' "$REGRESSIONS"
-    echo "ARCHIVE: Moved oldest regression to docs/ops/regression-archive.md (${ENTRY_COUNT} → $((ENTRY_COUNT - 1)) active)"
-  fi
+# Find the highest regression number
+LAST_NUM=$(grep -oE '^[0-9]+\.' "$REGRESSIONS" | tail -1 | tr -d '.' || echo "0")
+if [ -z "$LAST_NUM" ]; then LAST_NUM=0; fi
+NEXT_NUM=$((LAST_NUM + 1))
+
+REGRESSION_LINE="${NEXT_NUM}. ${FLAG} **${WHAT}** (${TODAY}) — ${WHAT} → ${WHY} → Rolled back to ${TARGET}. Tests \"${PRINCIPLE}\"."
+
+# Insert before the separator + policy line at the bottom
+if grep -q "^\*\*Policy:\*\*" "$REGRESSIONS"; then
+  awk -v entry="$REGRESSION_LINE" '
+    /^---$/ && !inserted { print entry; print ""; inserted=1 }
+    { print }
+  ' "$REGRESSIONS" > "${REGRESSIONS}.tmp" && mv "${REGRESSIONS}.tmp" "$REGRESSIONS"
 else
-  echo "WARNING: docs/ops/regressions.md not found — regression not logged to file"
-  echo "REGRESSION (stdout only): ${FLAG} ${WHAT} → ${WHY} → Tests \"${PRINCIPLE}\""
+  echo "$REGRESSION_LINE" >> "$REGRESSIONS"
+fi
+
+echo "REGRESSION: Logged #${NEXT_NUM} (${FLAG}) to docs/ops/regressions.md"
+
+# --- Auto-archive if over 10 ---
+ENTRY_COUNT=$(grep -cE '^[0-9]+\.' "$REGRESSIONS" || echo "0")
+if [ "$ENTRY_COUNT" -gt 10 ]; then
+  ARCHIVE="$WORKSPACE/docs/ops/regression-archive.md"
+  if [ ! -f "$ARCHIVE" ]; then
+    echo "# Regression Archive" > "$ARCHIVE"
+    echo "" >> "$ARCHIVE"
+  fi
+  # Move the oldest entry (first numbered line) to archive
+  OLDEST=$(grep -m1 -E '^[0-9]+\.' "$REGRESSIONS")
+  echo "$OLDEST" >> "$ARCHIVE"
+  # Remove the oldest entry — cross-platform (no BSD-only sed -i '')
+  OLDEST_LINE=$(grep -m1 -n -E '^[0-9]+\.' "$REGRESSIONS" | cut -d: -f1)
+  awk -v line="$OLDEST_LINE" 'NR != line' "$REGRESSIONS" > "${REGRESSIONS}.tmp" && mv "${REGRESSIONS}.tmp" "$REGRESSIONS"
+  echo "ARCHIVE: Moved oldest regression to docs/ops/regression-archive.md (${ENTRY_COUNT} → $((ENTRY_COUNT - 1)) active)"
 fi
 
 # --- Commit the rollback + regression log together ---

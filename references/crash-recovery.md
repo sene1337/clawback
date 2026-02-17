@@ -9,7 +9,9 @@ Never write important logs to `/tmp/` or any location that doesn't survive a reb
 Any long-running task (transcription, bulk processing, migrations, etc.) must maintain a **progress manifest** in the workspace — a Markdown file tracking each item's status: pending, running, done, failed. Update it after every completion so you can resume from exactly where you left off. Logs tell you what happened; the manifest tells you where to restart.
 
 ## 3. Git Checkpoint Protocol
-During batch jobs, commit the manifest and logs to git **every ~10 completions or every 30 minutes**, whichever comes first. If the workspace file gets corrupted or the process dies, git has the last known-good state. This is in addition to the pre-operation checkpoint.
+During batch jobs, commit the **manifest and progress files** to git **every ~10 completions or every 30 minutes**, whichever comes first. If the workspace file gets corrupted or the process dies, git has the last known-good state. This is in addition to the pre-operation checkpoint.
+
+**Note:** Commit manifests and progress files — not raw log output. Log files (`*.log`, `logs/`) stay in `.gitignore`. The manifest IS your durable log.
 
 ## 4. Detached Execution
 Batch processes must run **detached from the session** (`nohup`, LaunchAgent, or background process). Never tie a multi-hour job to a foreground session that dies on compaction, timeout, or reboot. The job must survive the agent dying.

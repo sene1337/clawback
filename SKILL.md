@@ -226,10 +226,11 @@ Your context window is a finite, non-renewable resource within a session. Treat 
 
 ### Context Budget
 
-- **Total context:** 200K tokens (~800K chars)
-- **Compaction reserve:** ~80K tokens
-- **Usable working memory:** ~120K tokens (~480K chars)
-- **Single web_fetch result:** 50-400K chars (can be 25-80% of your budget in one call)
+Your context window varies by model. As a rule of thumb:
+
+- **Usable working memory** ≈ 60% of total context (the rest is system prompt, compaction reserve, and conversation history)
+- **Single web_fetch result:** 50-400K chars — can consume a huge share of your budget in one call
+- Check your agent config for exact `contextTokens` and `compaction.reserveTokensFloor` values
 
 ### Warning Signs
 

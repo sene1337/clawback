@@ -27,7 +27,7 @@ When an agent rolls back, ClawBack requires three things:
 - **Why it broke** — root cause, not just symptoms
 - **What principle it tests** — which operating rule was violated
 
-This gets appended to your agent's `PRINCIPLES.md` as a regression entry. Over time, this creates a failure log that:
+This gets appended to `docs/ops/regressions.md` as a regression entry. Over time, this creates a failure log that:
 
 - **Survives context compaction** — it's in a file, not chat history
 - **Shows patterns** — repeated failures in the same area reveal systemic issues
@@ -59,13 +59,13 @@ git clone https://github.com/sene1337/clawback.git skills/clawback
 
 ## Setup
 
-If your workspace doesn't have a `PRINCIPLES.md` with a `## Regressions` section, create one:
+Run the setup script to create the regression log file:
 
 ```bash
 bash skills/clawback/scripts/setup.sh
 ```
 
-This creates a minimal `PRINCIPLES.md` with a Regressions section. Customize it from there — add your own principles, review criteria, and pruning rules.
+This creates `docs/ops/regressions.md` — the persistent regression log. Active entries are capped at 10; older ones auto-archive to `docs/ops/regression-archive.md`.
 
 ## Usage
 
@@ -78,7 +78,8 @@ bash skills/clawback/scripts/checkpoint.sh "reason for checkpoint"
 ### If the operation fails:
 ```bash
 bash skills/clawback/scripts/rollback.sh <hash> "what broke" "why" "principle tested"
-# Reverts files AND logs regression to PRINCIPLES.md
+# Reverts files AND logs regression to docs/ops/regressions.md
+# Add --prompted flag if a human caught the error (🔴)
 ```
 
 ## Crash Recovery
@@ -94,7 +95,7 @@ Never write logs to `/tmp/` or anywhere that doesn't survive a reboot. Batch job
 Maintain a progress manifest (Markdown table) tracking each item: pending, running, done, failed. Update after every completion. Logs tell you what happened — the manifest tells you where to resume.
 
 ### 3. Periodic Git Checkpoints
-During batch jobs, commit the manifest and logs every **~10 completions or 30 minutes** (whichever comes first). Git becomes your last-known-good state even if the workspace file gets corrupted mid-run.
+During batch jobs, commit the **manifest and progress files** every **~10 completions or 30 minutes** (whichever comes first). Git becomes your last-known-good state even if the workspace file gets corrupted mid-run. Commit manifests — not raw log output. Log files stay in `.gitignore`.
 
 ### 4. Detached Execution
 Batch processes run detached (`nohup`, LaunchAgent, background). Never tie a multi-hour job to a session that dies on compaction, timeout, or reboot. The job must survive the agent dying.
