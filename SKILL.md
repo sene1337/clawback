@@ -104,16 +104,24 @@ Returns a commit hash — your rollback point.
 ## Mode 3: Rollback (When Things Break)
 
 ```bash
-bash scripts/rollback.sh <commit-hash> "what broke" "why it broke" "which principle it tests"
+bash scripts/rollback.sh <commit-hash> "what broke" "why it broke" "which principle it tests" [--prompted]
 ```
 
-Reverts to checkpoint (non-destructive) AND appends a regression entry to PRINCIPLES.md.
+Reverts to checkpoint (including cleaning untracked files created after it) AND appends a regression entry to `docs/ops/regressions.md`.
 
-**All three reason arguments are required.** You can't rollback without logging what went wrong. Failures are data.
+**All four reason arguments are required.** You can't rollback without logging what went wrong. Failures are data.
+
+The `--prompted` flag marks the regression as 🔴 (human-caught). Default is 🟢 (self-caught). Be honest — the ratio is the scorecard.
+
+### Regression storage
+
+- **Active (last 10):** `docs/ops/regressions.md` — loaded on demand, NOT pinned at boot
+- **Archive:** `docs/ops/regression-archive.md` — auto-rotated when active exceeds 10
+- **PRINCIPLES.md** stays small and stable — no volatile data
 
 ### Regression format
 
-Auto-appended to `## Regressions` in PRINCIPLES.md:
+Auto-appended to `docs/ops/regressions.md`:
 
 ```
 N. 🟢 **<what broke>** (<date>) — <what broke> → <why> → Rolled back to <hash>. Tests "<principle>".
