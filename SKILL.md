@@ -231,6 +231,10 @@ echo "path/to/file.log" >> .gitignore
 git commit -m "chore: remove tracked log file, update .gitignore"
 ```
 
+## Publishing Skills to GitHub
+
+Before pushing any skill repo to GitHub, read and follow [references/skill-publishing.md](references/skill-publishing.md). Never push from the workspace root — workspace git is local-only.
+
 ## Crash Recovery
 
 For long-running and batch operations, see [references/crash-recovery.md](references/crash-recovery.md) — covers ephemeral log avoidance, manifest-driven batches, git checkpoint protocol, detached execution, and Plan → Track → Verify.
