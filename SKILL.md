@@ -84,6 +84,36 @@ That tells the full story. Each change is individually revertable. The daily log
 - Large binary files (media, datasets >1MB)
 - Node modules, Python venvs, build artifacts
 
+## Commit Enforcement
+
+Behavioral rules decay after context compaction. This section provides mechanical enforcement for the "one fix, one commit" discipline.
+
+### Heartbeat Check
+
+Add to your `HEARTBEAT.md`:
+
+```
+- Run `git status --short` in workspace. If dirty, commit each changed file with a descriptive message.
+```
+
+This runs every heartbeat cycle (typically 30 min on a lighter model). Cost is near-zero — one shell command. If uncommitted changes exist, commit them before doing anything else.
+
+### Why Mechanical Enforcement
+
+The commit rule works when it's fresh in context. After compaction, it drifts — you batch changes, forget to commit, and `git log` stops being a reliable record. When that happens:
+
+- Post-compaction sessions can't tell what was already done
+- You recommend changes that are already live
+- You revert working fixes because you don't trust your own history
+
+The heartbeat check catches drift automatically. It's a safety net, not a replacement for committing in the moment.
+
+### Anti-Patterns
+
+- **Batch commits at end of session** — defeats the entire purpose. Each change needs its own commit *when it happens*.
+- **Catch-up commits with vague messages** — `"commit various changes"` is useless in git log. If you're doing a catch-up commit, take the time to split and describe each change.
+- **Reverting without checking git log first** — if you're unsure whether a change was already made, `git log --oneline -20` is your first move, not your notes.
+
 ## Mode 2: Checkpoint (Before Risk)
 
 Same as before. Use before any operation you'd regret if it failed.
