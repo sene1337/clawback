@@ -12,6 +12,42 @@ Before ANY `git push`:
 - If `git remote -v` returns **nothing** → you're in the workspace. STOP. Do not add a remote. Do not push. The workspace is local-only. This is a non-negotiable security boundary.
 - If `git remote -v` returns a GitHub URL → you're in a standalone skill repo. Safe to push.
 
+## Skill Repo Standard
+
+Every skill in `workspace/skills/<name>/` **must** have its own git repo with a GitHub remote. No exceptions.
+
+### Checking compliance
+
+```bash
+for d in workspace/skills/*/; do
+  name=$(basename "$d")
+  if [ -d "$d/.git" ]; then
+    remote=$(cd "$d" && git remote get-url origin 2>/dev/null || echo 'no remote')
+    echo "✅ $name → $remote"
+  else
+    echo "❌ $name — no .git"
+  fi
+done
+```
+
+If any skill shows ❌, initialize it before doing anything else:
+
+```bash
+cd workspace/skills/<name>
+git init
+git remote add origin https://github.com/sene1337/<name>.git
+git add -A
+git commit -m "init: sync local repo with workspace skill"
+```
+
+If the GitHub repo doesn't exist yet, create it first: `gh repo create sene1337/<name> --public`
+
+### Remote URL hygiene
+
+**Never embed tokens in remote URLs.** Use `https://github.com/...` (no credentials). Authentication goes through `gh auth` or SSH keys — not inline tokens.
+
+If you find a token in a remote URL: `git remote set-url origin https://github.com/<org>/<repo>.git`
+
 ## The Workflow
 
 ### 1. Develop Locally (in workspace)
