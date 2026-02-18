@@ -14,7 +14,7 @@ Before ANY `git push`:
 
 ## Skill Repo Standard
 
-Every skill in `workspace/skills/<name>/` **must** have its own git repo with a GitHub remote. No exceptions.
+Every skill in `workspace/skills/<name>/` **must** have its own git repo with a remote (GitHub, Gitea, self-hosted — whatever fits your security model). No exceptions.
 
 ### Checking compliance
 
@@ -22,7 +22,7 @@ Every skill in `workspace/skills/<name>/` **must** have its own git repo with a 
 for d in workspace/skills/*/; do
   name=$(basename "$d")
   if [ -d "$d/.git" ]; then
-    remote=$(cd "$d" && git remote get-url origin 2>/dev/null || echo 'no remote')
+    remote=$(cd "$d" && git remote get-url origin 2>/dev/null || echo 'no remote set')
     echo "✅ $name → $remote"
   else
     echo "❌ $name — no .git"
@@ -35,12 +35,12 @@ If any skill shows ❌, initialize it before doing anything else:
 ```bash
 cd workspace/skills/<name>
 git init
-git remote add origin https://github.com/sene1337/<name>.git
+git remote add origin <your-remote-url>
 git add -A
 git commit -m "init: sync local repo with workspace skill"
 ```
 
-If the GitHub repo doesn't exist yet, create it first: `gh repo create sene1337/<name> --public`
+If you need to create the remote repo first, use your platform's CLI (e.g. `gh repo create <name> --public` for GitHub).
 
 ### Remote URL hygiene
 
@@ -66,7 +66,7 @@ Before publishing:
 
 Each publishable skill has its own repo. Copy the changed files:
 
-    cp -r workspace/skills/<name>/* ~/<standalone-repo-dir>/
+    rsync -a --exclude='.git' workspace/skills/<name>/ ~/<standalone-repo-dir>/
     cd ~/<standalone-repo-dir>/
 
 **Never copy these into a skill dir:** MEMORY.md, USER.md, SOUL.md, daily logs, inbox files, or anything from `memory/`, `docs/`, or `data/`. If it's not part of the skill, it doesn't leave the workspace.

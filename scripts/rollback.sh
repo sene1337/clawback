@@ -54,8 +54,11 @@ git checkout-index -a -f
 # Clean untracked files created after the checkpoint
 # Only clean files that were added after the target commit, not all untracked files
 git diff --name-only --diff-filter=A "$TARGET" HEAD 2>/dev/null | while read -r f; do
-  [ -f "$f" ] && rm -f "$f"
+  [ -f "$f" ] && rm -f -- "$f"
 done
+
+# Clean untracked files that aren't in the target commit
+git clean -fd
 
 git add -A
 

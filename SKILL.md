@@ -295,4 +295,4 @@ For long-running and batch operations, see [references/crash-recovery.md](refere
 - Auto-detects workspace root via `git rev-parse --show-toplevel`
 - Never force-pushes or rewrites history
 - Checkpoint messages include timestamp + reason for auditability
-- If PRINCIPLES.md doesn't have a `## Regressions` section, rollback creates one
+- Regressions logged to `docs/ops/regressions.md` (auto-created if missing)
