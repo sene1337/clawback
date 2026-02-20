@@ -53,7 +53,7 @@ if ! grep -Eq "^## \\[$version\\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$" "$CHANGELOG_FIL
   exit 1
 fi
 
-committed_changes=$(git diff --name-only "$BASE_REF"...HEAD || true)
+committed_changes=$(git diff --name-only "$BASE_REF"..HEAD || true)
 working_changes=$(git status --porcelain | awk '{print $2}')
 all_changes=$(printf '%s\n%s\n' "$committed_changes" "$working_changes" | sed '/^$/d' | sort -u || true)
 

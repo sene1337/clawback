@@ -1,6 +1,6 @@
 ---
 name: clawback
-description: Git workflow for AI agents — commit-as-you-go, checkpoints before risk, rollback when things break, worktree isolation for risky parallel work, and release/versioning hygiene. Also governs daily log discipline and .gitignore hygiene.
+description: Git workflow for AI agents — commit-as-you-go, checkpoint/rollback, worktree isolation, and release hygiene.
 ---
 
 # ClawBack
@@ -179,6 +179,7 @@ cd "$(bash scripts/worktree.sh path feat-branch-name)"
 - Do not call `git worktree add` directly. Use `scripts/worktree.sh` so `.worktrees/` handling stays consistent.
 - Base new worktrees from the default branch unless you have an explicit reason not to.
 - Before deleting worktrees, make sure changes are merged or intentionally discarded.
+- If you want branch cleanup, use `bash scripts/worktree.sh remove <branch> --prune-branch` (add `--force-branch` only when intentionally discarding unmerged work).
 
 ## Mode 5: Release Hygiene (Before Publishing This Skill)
 

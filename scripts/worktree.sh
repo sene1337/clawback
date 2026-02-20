@@ -10,12 +10,13 @@
 
 set -euo pipefail
 
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
-if [ -z "$ROOT" ]; then
+ROOT_RAW=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [ -z "$ROOT_RAW" ]; then
   echo "ERROR: Not inside a git repository" >&2
   exit 1
 fi
 
+ROOT=$(cd "$ROOT_RAW" && pwd -P)
 WORKTREE_DIR="$ROOT/.worktrees"
 
 default_branch() {
@@ -42,10 +43,19 @@ default_branch() {
 
 ensure_gitignore() {
   local gitignore="$ROOT/.gitignore"
+  local last_byte
 
   if [ ! -f "$gitignore" ]; then
     echo ".worktrees/" > "$gitignore"
     return
+  fi
+
+  # Ensure the file ends with a newline before appending.
+  if [ -s "$gitignore" ]; then
+    last_byte=$(tail -c 1 "$gitignore" | od -An -t u1 | tr -d ' ')
+    if [ "$last_byte" != "10" ]; then
+      echo >> "$gitignore"
+    fi
   fi
 
   if ! grep -Eq '^\.worktrees/?$' "$gitignore"; then
@@ -135,12 +145,31 @@ worktree_path() {
 
 remove_worktree() {
   local branch="${1:-}"
+  local prune_branch=0
+  local force_branch=0
   local path
   local current_root
+  local default
+
+  for arg in "${@:2}"; do
+    case "$arg" in
+      --prune-branch)
+        prune_branch=1
+        ;;
+      --force-branch)
+        force_branch=1
+        ;;
+      *)
+        echo "ERROR: Unknown flag '$arg'" >&2
+        echo "Usage: worktree.sh remove <branch> [--prune-branch] [--force-branch]" >&2
+        exit 1
+        ;;
+    esac
+  done
 
   if [ -z "$branch" ]; then
     echo "ERROR: Branch name required" >&2
-    echo "Usage: worktree.sh remove <branch>" >&2
+    echo "Usage: worktree.sh remove <branch> [--prune-branch] [--force-branch]" >&2
     exit 1
   fi
 
@@ -150,20 +179,43 @@ remove_worktree() {
     exit 1
   fi
 
-  current_root=$(git rev-parse --show-toplevel)
+  current_root=$(cd "$(git rev-parse --show-toplevel)" && pwd -P)
   if [ "$current_root" = "$(cd "$path" && pwd -P)" ]; then
     echo "ERROR: Refusing to remove current worktree: $path" >&2
     exit 1
   fi
 
   git worktree remove "$path" --force
-  echo "WORKTREE: Removed $branch"
+
+  if [ "$prune_branch" -eq 1 ]; then
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+      default=$(default_branch)
+      if [ "$force_branch" -eq 1 ]; then
+        git branch -D "$branch" >/dev/null
+        echo "WORKTREE: Removed $branch and pruned local branch (forced)"
+      else
+        if git branch -d "$branch" >/dev/null 2>&1; then
+          echo "WORKTREE: Removed $branch and pruned local branch"
+        else
+          echo "ERROR: Branch '$branch' is not fully merged; refusing to delete." >&2
+          echo "Hint: re-run with --force-branch if you intend to discard it." >&2
+          exit 1
+        fi
+      fi
+    else
+      echo "WORKTREE: Removed $branch (no local branch to prune)"
+    fi
+  else
+    echo "WORKTREE: Removed $branch (branch retained; use --prune-branch to delete)"
+  fi
 }
 
 cleanup_worktrees() {
   local main
   local current_root
   local removed=0
+  local line
+  local path
 
   if [ ! -d "$WORKTREE_DIR" ]; then
     echo "WORKTREE: No .worktrees directory found."
@@ -171,10 +223,9 @@ cleanup_worktrees() {
   fi
 
   main=$(cd "$ROOT" && pwd -P)
-  current_root=$(git rev-parse --show-toplevel)
+  current_root=$(cd "$(git rev-parse --show-toplevel)" && pwd -P)
 
   while IFS= read -r line; do
-    local path
     path=$(echo "$line" | awk '{print $1}')
 
     if [[ "$path" != "$WORKTREE_DIR/"* ]]; then
@@ -213,7 +264,7 @@ Usage:
   worktree.sh create <branch> [base-branch]
   worktree.sh list
   worktree.sh path <branch>
-  worktree.sh remove <branch>
+  worktree.sh remove <branch> [--prune-branch] [--force-branch]
   worktree.sh cleanup
   worktree.sh help
 EOF

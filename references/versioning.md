@@ -12,6 +12,10 @@ If any skill behavior changes (`SKILL.md`, `scripts/`, `references/`, `README.md
 
 Do not publish partial updates.
 
+## Baseline
+
+`1.0.0` is the first explicit, versioned release baseline for this repo. Earlier changes existed without an explicit version file.
+
 ## SemVer Policy
 
 - `MAJOR` (`X.0.0`): breaking behavior or incompatible workflow changes

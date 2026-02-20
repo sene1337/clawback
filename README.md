@@ -95,6 +95,11 @@ bash skills/clawback/scripts/worktree.sh list
 cd "$(bash skills/clawback/scripts/worktree.sh path feat-branch-name)"
 ```
 
+To remove a worktree and also prune its local branch:
+```bash
+bash skills/clawback/scripts/worktree.sh remove feat-branch-name --prune-branch
+```
+
 ### Before publishing skill changes:
 ```bash
 bash skills/clawback/scripts/release-check.sh origin/main
@@ -105,7 +110,7 @@ See `references/versioning.md` for full release rules.
 
 ## Crash Recovery
 
-**Added in v1.3** after a Mac Mini reboot wiped ~50% of a Whisper transcription batch. The logs were in `/tmp/`, there was no resume manifest, and the job was tied to a foreground session. Every mistake you can make with a long-running batch job, we made it.
+Added after a Mac Mini reboot wiped ~50% of a Whisper transcription batch. The logs were in `/tmp/`, there was no resume manifest, and the job was tied to a foreground session. Every mistake you can make with a long-running batch job, we made it.
 
 Four rules for any batch or long-running operation:
 
