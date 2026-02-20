@@ -2,7 +2,7 @@
 
 **Git checkpoint & regression tracking for OpenClaw agents.**
 
-Checkpoint before risky operations. Rollback when things break. Log what went wrong so your agent actually learns from failures.
+Checkpoint before risky operations. Rollback when things break. Isolate risky parallel work in worktrees. Enforce version/changelog discipline before publishing.
 
 ## Why This Exists
 
@@ -69,6 +69,12 @@ This creates `docs/ops/regressions.md` — the persistent regression log. Active
 
 ## Usage
 
+### Commit as you go
+```bash
+git add -A
+git commit -m "type: what changed — why"
+```
+
 ### Before risky operations:
 ```bash
 bash skills/clawback/scripts/checkpoint.sh "reason for checkpoint"
@@ -81,6 +87,21 @@ bash skills/clawback/scripts/rollback.sh <hash> "what broke" "why" "principle te
 # Reverts files AND logs regression to docs/ops/regressions.md
 # Add --prompted flag if a human caught the error (🔴)
 ```
+
+### Isolate risky or parallel work (worktrees):
+```bash
+bash skills/clawback/scripts/worktree.sh create feat-branch-name
+bash skills/clawback/scripts/worktree.sh list
+cd "$(bash skills/clawback/scripts/worktree.sh path feat-branch-name)"
+```
+
+### Before publishing skill changes:
+```bash
+bash skills/clawback/scripts/release-check.sh origin/main
+# Verifies VERSION + CHANGELOG discipline for skill changes
+```
+
+See `references/versioning.md` for full release rules.
 
 ## Crash Recovery
 
@@ -108,6 +129,8 @@ These aren't suggestions — they're the rules that would have saved us hours of
 - **Non-destructive** — never force-pushes or rewrites history
 - **Cross-platform** — macOS + Linux compatible
 - **Mechanically enforced** — can't skip the regression log on rollback
+- **Isolated by default for risky parallel work** — worktree wrapper keeps branch state clean
+- **Release metadata is a gate, not a suggestion** — version + changelog are validated by script
 - **Portable** — works on any OpenClaw workspace with git initialized
 
 ## Origin

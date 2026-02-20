@@ -61,6 +61,7 @@ Before publishing:
 - If the skill has scripts, test them
 - Make sure all file paths are relative (not absolute workspace paths)
 - Remove any agent-specific references (your name, your org, your config)
+- Run `bash scripts/release-check.sh` to enforce `VERSION` + `CHANGELOG.md` updates
 
 ### 3. Sync to Standalone Repo
 
