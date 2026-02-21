@@ -106,7 +106,7 @@ bash skills/clawback/scripts/release-check.sh origin/main
 # Verifies VERSION + CHANGELOG discipline for skill changes
 ```
 
-See `references/versioning.md` for full release rules.
+See `references/versioning.md` for full release rules (baseline `1.4.0`).
 
 ## Crash Recovery
 

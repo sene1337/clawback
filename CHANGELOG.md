@@ -5,11 +5,11 @@ All notable changes to ClawBack are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-02-20
+## [1.4.0] - 2026-02-20
 
 ### Added
 
-- `VERSION` + `CHANGELOG.md` as the first explicit, versioned release baseline
+- `VERSION` + `CHANGELOG.md` as the first explicit, versioned release baseline in-repo
 - `scripts/worktree.sh` for deterministic worktree management (`create`, `list`, `path`, `remove`, `cleanup`)
 - `scripts/release-check.sh` release gate for version/changelog enforcement
 - `references/versioning.md` with semver and publish checklist guidance
@@ -21,4 +21,4 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Notes
 
-- This repo previously shipped changes without an explicit version file; `1.0.0` establishes the baseline for future releases.
+- This repo existed prior to `VERSION`/`CHANGELOG.md`; `1.4.0` matches the existing release line referenced externally (e.g., `v1.3`) while establishing an explicit baseline going forward.

@@ -14,7 +14,7 @@ Do not publish partial updates.
 
 ## Baseline
 
-`1.0.0` is the first explicit, versioned release baseline for this repo. Earlier changes existed without an explicit version file.
+`1.4.0` is the first explicit, versioned release baseline committed in-repo. Earlier releases existed without a `VERSION` file and are referenced externally (e.g., `v1.3`), so this baseline preserves continuity while making future changes auditable.
 
 ## SemVer Policy
 
