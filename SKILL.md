@@ -1,11 +1,11 @@
 ---
 name: clawback
-description: Git workflow for AI agents — commit-as-you-go, checkpoints before risk, rollback when things break. Also governs daily log discipline and .gitignore hygiene. Use for all version control decisions, before destructive operations, and when writing daily memory logs.
+description: Git workflow for AI agents — commit-as-you-go, checkpoint/rollback, worktree isolation, and release hygiene.
 ---
 
 # ClawBack
 
-A complete git workflow for AI agents. Three modes: **Commit** (your default), **Checkpoint** (before risk), **Rollback** (when things break).
+A complete git workflow for AI agents. Five modes: **Commit** (default), **Checkpoint** (before risk), **Rollback** (when things break), **Isolate** (worktree for risky parallel work), and **Release Hygiene** (before publishing this skill).
 
 ## Mode 1: Commit (Default Working Mode)
 
@@ -157,6 +157,46 @@ Auto-appended to `docs/ops/regressions.md`:
 N. 🟢 **<what broke>** (<date>) — <what broke> → <why> → Rolled back to <hash>. Tests "<principle>".
 ```
 
+## Mode 4: Isolate (Worktree for Parallel/Risky Work)
+
+Use a separate worktree when you need isolation: large refactors, risky migrations, or parallel feature streams.
+
+```bash
+bash scripts/worktree.sh create feat-branch-name
+bash scripts/worktree.sh list
+bash scripts/worktree.sh path feat-branch-name
+cd "$(bash scripts/worktree.sh path feat-branch-name)"
+```
+
+### Why this mode exists
+
+- Keeps your main workspace clean while experimenting
+- Reduces accidental cross-branch contamination
+- Makes cleanup deterministic (`bash scripts/worktree.sh cleanup`)
+
+### Rules
+
+- Do not call `git worktree add` directly. Use `scripts/worktree.sh` so `.worktrees/` handling stays consistent.
+- Base new worktrees from the default branch unless you have an explicit reason not to.
+- Before deleting worktrees, make sure changes are merged or intentionally discarded.
+- If you want branch cleanup, use `bash scripts/worktree.sh remove <branch> --prune-branch` (add `--force-branch` only when intentionally discarding unmerged work).
+
+## Mode 5: Release Hygiene (Before Publishing This Skill)
+
+ClawBack itself needs strict version control. Before publishing this repo, validate release metadata:
+
+```bash
+bash scripts/release-check.sh [base-ref]
+```
+
+The check enforces:
+
+- `VERSION` exists and is valid semver
+- `VERSION` is bumped versus `base-ref` when skill files change
+- `CHANGELOG.md` is updated and includes a section for the current `VERSION`
+
+For full policy and checklist, see [references/versioning.md](references/versioning.md).
+
 ## Daily Log Discipline
 
 Daily logs (`memory/YYYY-MM-DD.md`) are **standup updates, not debug transcripts.**
@@ -274,6 +314,14 @@ git commit -m "chore: remove tracked log file, update .gitignore"
 
 Before pushing any skill repo to GitHub, read and follow [references/skill-publishing.md](references/skill-publishing.md). Never push from the workspace root — workspace git is local-only.
 
+## Versioning & Changelog Discipline
+
+Before publishing updates to this skill, follow [references/versioning.md](references/versioning.md) and run:
+
+```bash
+bash scripts/release-check.sh
+```
+
 ## Crash Recovery
 
 For long-running and batch operations, see [references/crash-recovery.md](references/crash-recovery.md) — covers ephemeral log avoidance, manifest-driven batches, git checkpoint protocol, detached execution, and Plan → Track → Verify.
@@ -286,6 +334,9 @@ For long-running and batch operations, see [references/crash-recovery.md](refere
 | Just added a feature | `git commit -m "feat: what — why"` |
 | About to do something risky | `bash scripts/checkpoint.sh "reason"` |
 | Something broke after a change | `bash scripts/rollback.sh <hash> "what" "why" "principle"` |
+| Need isolated parallel work | `bash scripts/worktree.sh create <branch>` |
+| Need to cleanup old worktrees | `bash scripts/worktree.sh cleanup` |
+| Preparing to publish skill updates | `bash scripts/release-check.sh [base-ref]` |
 | Writing daily log | Max 5 lines/project, reference commits, target 60-80 lines total |
 | Found a log file in git | `git rm --cached`, add to `.gitignore` |
 
@@ -296,3 +347,5 @@ For long-running and batch operations, see [references/crash-recovery.md](refere
 - Never force-pushes or rewrites history
 - Checkpoint messages include timestamp + reason for auditability
 - Regressions logged to `docs/ops/regressions.md` (auto-created if missing)
+- Worktrees are managed in `.worktrees/` via `scripts/worktree.sh`
+- Release metadata enforcement via `scripts/release-check.sh`
