@@ -312,7 +312,7 @@ git commit -m "chore: remove tracked log file, update .gitignore"
 
 ## Publishing Skills to GitHub
 
-Before pushing any skill repo to GitHub, read and follow [references/skill-publishing.md](references/skill-publishing.md). Never push from the workspace root — workspace git is local-only.
+Before pushing any skill repo to GitHub, read and follow `docs/ops/skill-publishing.md` (canonical) or this repo's pointer at `references/skill-publishing.md`. Never push from the workspace root — workspace git is local-only.
 
 ## Versioning & Changelog Discipline
 
