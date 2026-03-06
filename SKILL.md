@@ -114,6 +114,36 @@ The heartbeat check catches drift automatically. It's a safety net, not a replac
 - **Catch-up commits with vague messages** — `"commit various changes"` is useless in git log. If you're doing a catch-up commit, take the time to split and describe each change.
 - **Reverting without checking git log first** — if you're unsure whether a change was already made, `git log --oneline -20` is your first move, not your notes.
 
+## Subagent Commit Ownership
+
+When using sub-agents for heavy work, the **main session owns all commits** — never the subagent.
+
+### The Rule
+
+Subagents: write and save files only. The main session:
+1. Reviews the output against the quality gate
+2. If it passes → commits with a proper message
+3. Updates the task tracker and daily log in the same step
+4. If it fails → fixes or rejects without committing garbage to history
+
+### Why This Matters
+
+When subagents self-commit:
+- Garbage output lands in git history before anyone reviews it
+- The commit message is written by the subagent, not the session with full context
+- The log update step gets skipped because it happened "elsewhere"
+- Post-compaction, you can't tell if the commit represents good or bad output
+
+**Quality gate and git history are the main session's responsibility. Don't delegate them.**
+
+### In Your AGENTS.md
+
+Add to your Rule 3 (or equivalent delegation rule):
+
+```
+Subagents write/save files only. Main session owns all git commits, quality review, and log entries.
+```
+
 ## Mode 2: Checkpoint (Before Risk)
 
 Same as before. Use before any operation you'd regret if it failed.
@@ -137,7 +167,7 @@ Returns a commit hash — your rollback point.
 bash scripts/rollback.sh <commit-hash> "what broke" "why it broke" "which principle it tests" [--prompted]
 ```
 
-Reverts to checkpoint (including cleaning untracked files created after it) AND appends a regression entry to `docs/ops/regressions.md`.
+Reverts to checkpoint (including cleaning untracked files created after it) AND appends a regression entry to `ops/regressions.md`.
 
 **All four reason arguments are required.** You can't rollback without logging what went wrong. Failures are data.
 
@@ -145,13 +175,13 @@ The `--prompted` flag marks the regression as 🔴 (human-caught). Default is �
 
 ### Regression storage
 
-- **Active (last 10):** `docs/ops/regressions.md` — loaded on demand, NOT pinned at boot
-- **Archive:** `docs/ops/regression-archive.md` — auto-rotated when active exceeds 10
+- **Active (last 10):** `ops/regressions.md` — loaded on demand, NOT pinned at boot
+- **Archive:** `ops/regression-archive.md` — auto-rotated when active exceeds 10
 - **PRINCIPLES.md** stays small and stable — no volatile data
 
 ### Regression format
 
-Auto-appended to `docs/ops/regressions.md`:
+Auto-appended to `ops/regressions.md`:
 
 ```
 N. 🟢 **<what broke>** (<date>) — <what broke> → <why> → Rolled back to <hash>. Tests "<principle>".
@@ -312,7 +342,7 @@ git commit -m "chore: remove tracked log file, update .gitignore"
 
 ## Publishing Skills to GitHub
 
-Before pushing any skill repo to GitHub, read and follow `docs/ops/skill-publishing.md` (canonical). Keep ClawBack's teaching copy in sync by running `bash /Users/seneschal/.openclaw/workspace/scripts/sync-skill-publishing-sop.sh` after any SOP change. Never push from the workspace root — workspace git is local-only.
+Before pushing any skill repo to GitHub, read and follow `ops/skill-publishing.md` (canonical). Keep ClawBack's teaching copy in sync by running `bash /Users/seneschal/.openclaw/workspace/scripts/sync-skill-publishing-sop.sh` after any SOP change. Never push from the workspace root — workspace git is local-only.
 
 ## Versioning & Changelog Discipline
 
@@ -346,6 +376,6 @@ For long-running and batch operations, see [references/crash-recovery.md](refere
 - Auto-detects workspace root via `git rev-parse --show-toplevel`
 - Never force-pushes or rewrites history
 - Checkpoint messages include timestamp + reason for auditability
-- Regressions logged to `docs/ops/regressions.md` (auto-created if missing)
+- Regressions logged to `ops/regressions.md` (auto-created if missing)
 - Worktrees are managed in `.worktrees/` via `scripts/worktree.sh`
 - Release metadata enforcement via `scripts/release-check.sh`
