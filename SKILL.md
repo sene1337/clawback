@@ -407,7 +407,7 @@ git commit -m "chore: remove tracked log file, update .gitignore"
 
 ## Publishing Skills to GitHub
 
-Before pushing any skill repo to GitHub, read and follow `ops/skill-publishing.md` (canonical). Keep ClawBack's teaching copy in sync by running `bash /Users/seneschal/.openclaw/workspace/scripts/sync-skill-publishing-sop.sh` after any SOP change. Never push from the workspace root — workspace git is local-only.
+Before pushing any skill repo to GitHub, read the bundled guide [references/skill-publishing.md](references/skill-publishing.md) and follow the canonical workspace SOP at `ops/playbooks/tools/sops/skill-publishing.md`. Keep paths relative in published skill content (no absolute `/Users/...` paths). Never push from the workspace root — workspace git is local-only.
 
 ## Versioning & Changelog Discipline
 
