@@ -5,6 +5,22 @@ All notable changes to ClawBack are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-03-11
+
+### Added
+
+- Option C primitives: `scripts/init-ops-state.sh`, `scripts/state-checkpoint.sh`, `scripts/state-restore.sh`, and `scripts/pre-commit-guard.sh`
+- `references/ops-state.md` documenting the dual-surface model and restore guardrails
+
+### Changed
+
+- `SKILL.md` and `README.md` now describe the workspace repo + local-only `ops-state` model
+
+### Fixed
+
+- Rollback and setup now use the workspace-canonical regressions path: `ops/continuous-improvement/regressions.md`
+- `scripts/state-restore.sh` now parses flags before checkpoint resolution, so `--help` works correctly and custom ops-state paths are normalized consistently
+
 ## [1.5.0] - 2026-03-06
 
 ### Added

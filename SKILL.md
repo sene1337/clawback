@@ -1,11 +1,11 @@
 ---
 name: clawback
-description: Git workflow for AI agents — commit-as-you-go, checkpoint/rollback, worktree isolation, and release hygiene.
+description: Git workflow for AI agents — commit-as-you-go, workspace rollback, local-only ops-state checkpointing, worktree isolation, and release hygiene.
 ---
 
 # ClawBack
 
-A complete git workflow for AI agents. Five modes: **Commit** (default), **Checkpoint** (before risk), **Rollback** (when things break), **Isolate** (worktree for risky parallel work), and **Release Hygiene** (before publishing this skill).
+A complete git workflow for AI agents. The original workspace flow stays intact: **Commit**, **Checkpoint**, **Rollback**, **Isolate**, and **Release Hygiene**. Option C adds a second local-only surface, `ops-state`, so selected runtime state outside the workspace can be checkpointed and restored without polluting workspace git.
 
 ## Mode 1: Commit (Default Working Mode)
 
@@ -161,13 +161,78 @@ Returns a commit hash — your rollback point.
 - Before config/architecture changes
 - Before any operation that could break the workspace
 
-## Mode 3: Rollback (When Things Break)
+## Option C: Dual-Surface Setup
+
+Use this when the task touches both the workspace repo and runtime state outside it.
+
+```bash
+bash scripts/setup.sh
+bash scripts/init-ops-state.sh
+```
+
+Surface model:
+
+- **Workspace repo:** source, docs, scripts, and durable project artifacts
+- **ops-state repo:** local-only manifests, checkpoint indexes, restore notes
+- **Ignored local payloads:** raw runtime snapshots under `ops-state/snapshots/`
+
+The `ops-state` repo installs `scripts/pre-commit-guard.sh` as a git hook. It blocks remotes, raw snapshots, DB files, session exports, logs, `.env` material, and obvious secret-like staged content. For the full model, see [references/ops-state.md](references/ops-state.md).
+
+## Mode 3: Runtime State Checkpoint
+
+Use this before touching selected out-of-workspace runtime surfaces.
+
+```bash
+bash scripts/state-checkpoint.sh --name "before live queue migration"
+```
+
+Default profile: `openclaw-core`
+
+- `~/.openclaw/lcm.db`
+- `~/.openclaw/agents/*/sessions`
+
+Useful flags:
+
+```bash
+bash scripts/state-checkpoint.sh --path ~/.openclaw/lcm.db --path ~/.openclaw/agents/main/sessions
+bash scripts/state-checkpoint.sh --manifest-only --name "inventory only"
+bash scripts/state-checkpoint.sh --dry-run
+```
+
+Safety rules:
+
+- Refuses workspace paths
+- Refuses ops-state internals
+- Stores raw payloads in ignored local snapshots only
+- Commits manifests and checkpoint indexes to `ops-state`
+
+## Mode 4: Runtime State Restore
+
+Restore is dry-run by default and verifies the recorded checksum before doing anything.
+
+```bash
+bash scripts/state-restore.sh <checkpoint-id> --dry-run
+```
+
+Real restore requires explicit confirmation:
+
+```bash
+bash scripts/state-restore.sh <checkpoint-id> --yes-restore
+```
+
+Restore semantics:
+
+- Overlay restore only; files created after the checkpoint are preserved
+- Refuses workspace and ops-state paths from the manifest
+- Writes a restore note back to the local `ops-state` repo
+
+## Mode 5: Rollback (When Things Break)
 
 ```bash
 bash scripts/rollback.sh <commit-hash> "what broke" "why it broke" "which principle it tests" [--prompted]
 ```
 
-Reverts to checkpoint (including cleaning untracked files created after it) AND appends a regression entry to `ops/regressions.md`.
+Reverts to checkpoint (including cleaning untracked files created after it) AND appends a regression entry to `ops/continuous-improvement/regressions.md`.
 
 **All four reason arguments are required.** You can't rollback without logging what went wrong. Failures are data.
 
@@ -175,19 +240,19 @@ The `--prompted` flag marks the regression as 🔴 (human-caught). Default is �
 
 ### Regression storage
 
-- **Active (last 10):** `ops/regressions.md` — loaded on demand, NOT pinned at boot
-- **Archive:** `ops/regression-archive.md` — auto-rotated when active exceeds 10
+- **Active (last 10):** `ops/continuous-improvement/regressions.md` — loaded on demand, NOT pinned at boot
+- **Archive:** `ops/continuous-improvement/regression-archive.md` — auto-rotated when active exceeds 10
 - **PRINCIPLES.md** stays small and stable — no volatile data
 
 ### Regression format
 
-Auto-appended to `ops/regressions.md`:
+Auto-appended to `ops/continuous-improvement/regressions.md`:
 
 ```
 N. 🟢 **<what broke>** (<date>) — <what broke> → <why> → Rolled back to <hash>. Tests "<principle>".
 ```
 
-## Mode 4: Isolate (Worktree for Parallel/Risky Work)
+## Mode 6: Isolate (Worktree for Parallel/Risky Work)
 
 Use a separate worktree when you need isolation: large refactors, risky migrations, or parallel feature streams.
 
@@ -211,7 +276,7 @@ cd "$(bash scripts/worktree.sh path feat-branch-name)"
 - Before deleting worktrees, make sure changes are merged or intentionally discarded.
 - If you want branch cleanup, use `bash scripts/worktree.sh remove <branch> --prune-branch` (add `--force-branch` only when intentionally discarding unmerged work).
 
-## Mode 5: Release Hygiene (Before Publishing This Skill)
+## Mode 7: Release Hygiene (Before Publishing This Skill)
 
 ClawBack itself needs strict version control. Before publishing this repo, validate release metadata:
 
@@ -363,6 +428,9 @@ For long-running and batch operations, see [references/crash-recovery.md](refere
 | Just finished a fix | `git commit -m "fix: what — why"` |
 | Just added a feature | `git commit -m "feat: what — why"` |
 | About to do something risky | `bash scripts/checkpoint.sh "reason"` |
+| Need local runtime-state tracking | `bash scripts/init-ops-state.sh` |
+| About to touch out-of-workspace runtime state | `bash scripts/state-checkpoint.sh --name "reason"` |
+| Need to rehearse a runtime restore | `bash scripts/state-restore.sh <checkpoint-id> --dry-run` |
 | Something broke after a change | `bash scripts/rollback.sh <hash> "what" "why" "principle"` |
 | Need isolated parallel work | `bash scripts/worktree.sh create <branch>` |
 | Need to cleanup old worktrees | `bash scripts/worktree.sh cleanup` |
@@ -376,6 +444,8 @@ For long-running and batch operations, see [references/crash-recovery.md](refere
 - Auto-detects workspace root via `git rev-parse --show-toplevel`
 - Never force-pushes or rewrites history
 - Checkpoint messages include timestamp + reason for auditability
-- Regressions logged to `ops/regressions.md` (auto-created if missing)
+- Regressions logged to `ops/continuous-improvement/regressions.md` (auto-created if missing)
+- Option C adds a local-only `ops-state` repo plus snapshot/restore primitives for selected runtime state
+- `scripts/pre-commit-guard.sh` blocks raw payloads and obvious secrets from `ops-state` git history
 - Worktrees are managed in `.worktrees/` via `scripts/worktree.sh`
 - Release metadata enforcement via `scripts/release-check.sh`

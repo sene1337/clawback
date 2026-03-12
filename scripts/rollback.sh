@@ -62,8 +62,8 @@ git clean -fd
 
 git add -A
 
-# --- Log regression to docs/ops/regressions.md ---
-REGRESSIONS="$WORKSPACE/docs/ops/regressions.md"
+# --- Log regression to ops/continuous-improvement/regressions.md ---
+REGRESSIONS="$WORKSPACE/ops/continuous-improvement/regressions.md"
 
 # Create regressions file if it doesn't exist
 if [ ! -f "$REGRESSIONS" ]; then
@@ -78,7 +78,7 @@ Flag: 🔴 prompted (human caught it) | 🟢 autonomous (self-caught).
 
 **Policy:** Active file holds last 10. Older entries archived to `regression-archive.md`.
 HEREDOC
-  echo "SETUP: Created docs/ops/regressions.md"
+  echo "SETUP: Created ops/continuous-improvement/regressions.md"
 fi
 
 # Find the highest regression number
@@ -98,12 +98,12 @@ else
   echo "$REGRESSION_LINE" >> "$REGRESSIONS"
 fi
 
-echo "REGRESSION: Logged #${NEXT_NUM} (${FLAG}) to docs/ops/regressions.md"
+echo "REGRESSION: Logged #${NEXT_NUM} (${FLAG}) to ops/continuous-improvement/regressions.md"
 
 # --- Auto-archive if over 10 ---
 ENTRY_COUNT=$(grep -cE '^[0-9]+\.' "$REGRESSIONS" || echo "0")
 if [ "$ENTRY_COUNT" -gt 10 ]; then
-  ARCHIVE="$WORKSPACE/docs/ops/regression-archive.md"
+  ARCHIVE="$WORKSPACE/ops/continuous-improvement/regression-archive.md"
   if [ ! -f "$ARCHIVE" ]; then
     echo "# Regression Archive" > "$ARCHIVE"
     echo "" >> "$ARCHIVE"
@@ -114,7 +114,7 @@ if [ "$ENTRY_COUNT" -gt 10 ]; then
   # Remove the oldest entry — cross-platform (no BSD-only sed -i '')
   OLDEST_LINE=$(grep -m1 -n -E '^[0-9]+\.' "$REGRESSIONS" | cut -d: -f1)
   awk -v line="$OLDEST_LINE" 'NR != line' "$REGRESSIONS" > "${REGRESSIONS}.tmp" && mv "${REGRESSIONS}.tmp" "$REGRESSIONS"
-  echo "ARCHIVE: Moved oldest regression to docs/ops/regression-archive.md (${ENTRY_COUNT} → $((ENTRY_COUNT - 1)) active)"
+  echo "ARCHIVE: Moved oldest regression to ops/continuous-improvement/regression-archive.md (${ENTRY_COUNT} → $((ENTRY_COUNT - 1)) active)"
 fi
 
 # --- Commit the rollback + regression log together ---

@@ -1,6 +1,6 @@
 # 🦀 ClawBack
 
-**Git checkpoint & regression tracking for OpenClaw agents.**
+**Git checkpoint, runtime-state recovery, and regression tracking for OpenClaw agents.**
 
 Checkpoint before risky operations. Rollback when things break. Isolate risky parallel work in worktrees. Enforce version/changelog discipline before publishing.
 
@@ -12,7 +12,7 @@ What's *not* expected is making the same mistake twice.
 
 Most agents have no mechanism for learning from operational failures. They forget between sessions. Context gets compacted. The same error happens again three days later because nothing was recorded.
 
-**ClawBack solves this with two mechanisms:**
+**ClawBack solves this with three linked mechanisms:**
 
 ### 1. Checkpoint & Rollback (Safety Net)
 
@@ -27,12 +27,22 @@ When an agent rolls back, ClawBack requires three things:
 - **Why it broke** — root cause, not just symptoms
 - **What principle it tests** — which operating rule was violated
 
-This gets appended to `docs/ops/regressions.md` as a regression entry. Over time, this creates a failure log that:
+This gets appended to `ops/continuous-improvement/regressions.md` as a regression entry. Over time, this creates a failure log that:
 
 - **Survives context compaction** — it's in a file, not chat history
 - **Shows patterns** — repeated failures in the same area reveal systemic issues
 - **Creates accountability** — you can see whether your agent self-catches failures (🟢) or needs to be corrected (🔴)
 - **Measures growth** — a rising 🟢/🔴 ratio means your agent is actually learning
+
+### 3. Option C Runtime-State Recovery
+
+Workspace git only protects files inside the workspace repo. ClawBack's Option C flow adds a second local-only git surface, `ops-state`, for:
+
+- checkpoint manifests
+- checkpoint indexes
+- restore event notes
+
+Raw runtime payloads stay local in ignored snapshot files, not in git. This makes it possible to checkpoint selected out-of-workspace state like `~/.openclaw/lcm.db` or session directories without pushing volatile payloads into the workspace history.
 
 ### For Humans
 
@@ -59,13 +69,19 @@ git clone https://github.com/sene1337/clawback.git skills/clawback
 
 ## Setup
 
-Run the setup script to create the regression log file:
+Run the setup scripts to create the regression log and local ops-state surface:
 
 ```bash
 bash skills/clawback/scripts/setup.sh
+bash skills/clawback/scripts/init-ops-state.sh
 ```
 
-This creates `docs/ops/regressions.md` — the persistent regression log. Active entries are capped at 10; older ones auto-archive to `docs/ops/regression-archive.md`.
+This creates:
+
+- `ops/continuous-improvement/regressions.md` in the workspace repo
+- `~/.openclaw/ops-state` as a local-only git repo for manifests and restore notes
+
+See [references/ops-state.md](references/ops-state.md) for the dual-surface model and guardrails.
 
 ## Usage
 
@@ -81,10 +97,22 @@ bash skills/clawback/scripts/checkpoint.sh "reason for checkpoint"
 # Returns: commit hash (save this)
 ```
 
+### Before touching out-of-workspace runtime state:
+```bash
+bash skills/clawback/scripts/state-checkpoint.sh --name "before live queue migration"
+# Captures selected runtime payloads into ignored local snapshots
+# Commits the manifest and checkpoint index to ops-state
+```
+
+Dry-run a restore:
+```bash
+bash skills/clawback/scripts/state-restore.sh <checkpoint-id> --dry-run
+```
+
 ### If the operation fails:
 ```bash
 bash skills/clawback/scripts/rollback.sh <hash> "what broke" "why" "principle tested"
-# Reverts files AND logs regression to docs/ops/regressions.md
+# Reverts files AND logs regression to ops/continuous-improvement/regressions.md
 # Add --prompted flag if a human caught the error (🔴)
 ```
 
@@ -132,8 +160,10 @@ These aren't suggestions — they're the rules that would have saved us hours of
 
 - **Zero dependencies** — just bash + git
 - **Non-destructive** — never force-pushes or rewrites history
+- **Dual-surface** — workspace git for source; local-only `ops-state` for runtime-state manifests and restore notes
 - **Cross-platform** — macOS + Linux compatible
 - **Mechanically enforced** — can't skip the regression log on rollback
+- **Guarded by default** — `ops-state` installs a pre-commit allow/deny hook for secrets and raw payloads
 - **Isolated by default for risky parallel work** — worktree wrapper keeps branch state clean
 - **Release metadata is a gate, not a suggestion** — version + changelog are validated by script
 - **Portable** — works on any OpenClaw workspace with git initialized
