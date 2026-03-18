@@ -1,34 +1,39 @@
 ---
 name: clawback
-description: Git workflow for AI agents — commit-as-you-go, workspace rollback, local-only ops-state checkpointing, worktree isolation, and release hygiene.
+description: >
+  Git safety workflow for AI agents. Use when the request says checkpoint,
+  rollback, commit hygiene, worktree isolation, ops-state, runtime-state
+  checkpoint/restore, or release hygiene for this skill. Do NOT use for general
+  git tutoring, everyday branching advice, or non-agent
+  backup/version-control workflows.
 ---
 
 # ClawBack
 
-A complete git workflow for AI agents. The original workspace flow stays intact: **Commit**, **Checkpoint**, **Rollback**, **Isolate**, and **Release Hygiene**. Option C adds a second local-only surface, `ops-state`, so selected runtime state outside the workspace can be checkpointed and restored without polluting workspace git.
+Router for agent-safe git operations: commit-as-you-go, pre-risk checkpoints, rollback, worktree isolation, local-only runtime-state capture, and release checks.
+
+## Workflow Map
+
+- **Mode 1: Commit** — default working mode after every logical unit of work
+- **Mode 2: Checkpoint** — create a rollback point before risky changes
+- **Option C: Dual-Surface Setup** — initialize local-only `ops-state` for runtime-state manifests
+- **Mode 3: Runtime State Checkpoint** — capture selected out-of-workspace state into ignored snapshots plus committed manifests
+- **Mode 4: Runtime State Restore** — rehearse or run a checksum-verified overlay restore
+- **Mode 5: Rollback** — revert to a safe commit and append a regression entry
+- **Mode 6: Isolate** — use worktrees for risky or parallel branches
+- **Mode 7: Release Hygiene** — enforce `VERSION` + `CHANGELOG.md` before publishing this skill
 
 ## Mode 1: Commit (Default Working Mode)
 
-**This is your primary mode.** Commit after every logical unit of work — one fix, one feature, one config change. Your git log should read like a changelog.
-
-### When to commit
-
-- After fixing a bug
-- After adding a feature or capability
-- After a config change
-- After writing or updating documentation
-- After refactoring code
-- Basically: after every distinct thing you complete
+Commit after every logical unit of work: one fix, one feature, one config change, one doc change, or one refactor.
 
 ### How to commit
 
 ```bash
-cd $(git rev-parse --show-toplevel)
+cd "$(git rev-parse --show-toplevel)"
 git add -A  # or specific files
 git commit -m "type: what changed — why"
 ```
-
-No script needed. Keep friction near zero so you commit more, not less.
 
 ### Commit message format
 
@@ -38,17 +43,17 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 type: concise description of what changed — why (if not obvious)
 ```
 
-**Types:**
-| Type | When |
-|------|------|
-| `feat:` | New capability or feature |
-| `fix:` | Bug fix |
-| `docs:` | Documentation only |
-| `refactor:` | Code change that neither fixes a bug nor adds a feature |
-| `chore:` | Maintenance, dependencies, config, cleanup |
-| `perf:` | Performance improvement |
+Use these types:
 
-**Examples:**
+- `feat:` new capability or feature
+- `fix:` bug fix
+- `docs:` documentation only
+- `refactor:` code change that neither fixes a bug nor adds a feature
+- `chore:` maintenance, dependencies, config, cleanup
+- `perf:` performance improvement
+
+Examples:
+
 ```
 feat: replace Chatterbox with Piper TTS — 30x faster, Chatterbox took 30+ seconds
 fix: Safari AudioContext — init on user gesture, not on chunk arrival
@@ -57,36 +62,22 @@ refactor: split voice handler into separate STT and TTS modules
 chore: update .gitignore, remove tracked log files
 ```
 
-**Rules from [How to Write a Git Commit Message](https://cbea.ms/git-commit/):**
-- Limit subject line to ~72 characters
-- Use imperative mood ("add" not "added", "fix" not "fixed")
-- Don't end with a period
-- If the "why" is obvious from the "what", skip it
+- Limit the subject line to about 72 characters
+- Use imperative mood
+- Do not end the subject with a period
+- Skip the "why" when it is already obvious
 
-### Why this matters
+### What not to commit
 
-Your git history IS your debug log. If you commit properly during work:
-
-```
-e3ce305 fix: Safari AudioContext — init on user gesture, not on chunk arrival
-a2b1f09 feat: replace Chatterbox with Piper TTS — 30x faster
-6fc28af fix: resample 48kHz→16kHz for Whisper, cast float64→float32
-b8d9e12 feat: add LaunchAgent for auto-start on boot
-```
-
-That tells the full story. Each change is individually revertable. The daily log becomes a 5-line summary referencing commit hashes — not a 70-line debugging transcript. Detail lives in git (free, searchable, zero boot tokens), not in memory files (expensive, reloads every session).
-
-### What NOT to commit
-
-- Log files or runtime output (`*.log`, `logs/`)
+- Logs or runtime output (`*.log`, `logs/`)
 - Secrets, tokens, passwords, API keys
-- Temp files, cache directories
-- Large binary files (media, datasets >1MB)
-- Node modules, Python venvs, build artifacts
+- Temp files or cache directories
+- Large binary payloads
+- Dependencies or build artifacts
+
+For the rationale, heartbeat enforcement, anti-patterns, and subagent commit ownership, read [references/operating-discipline.md](references/operating-discipline.md).
 
 ## Commit Enforcement
-
-Behavioral rules decay after context compaction. This section provides mechanical enforcement for the "one fix, one commit" discipline.
 
 ### Heartbeat Check
 
@@ -96,69 +87,27 @@ Add to your `HEARTBEAT.md`:
 - Run `git status --short` in workspace. If dirty, commit each changed file with a descriptive message.
 ```
 
-This runs every heartbeat cycle (typically 30 min on a lighter model). Cost is near-zero — one shell command. If uncommitted changes exist, commit them before doing anything else.
-
-### Why Mechanical Enforcement
-
-The commit rule works when it's fresh in context. After compaction, it drifts — you batch changes, forget to commit, and `git log` stops being a reliable record. When that happens:
-
-- Post-compaction sessions can't tell what was already done
-- You recommend changes that are already live
-- You revert working fixes because you don't trust your own history
-
-The heartbeat check catches drift automatically. It's a safety net, not a replacement for committing in the moment.
-
-### Anti-Patterns
-
-- **Batch commits at end of session** — defeats the entire purpose. Each change needs its own commit *when it happens*.
-- **Catch-up commits with vague messages** — `"commit various changes"` is useless in git log. If you're doing a catch-up commit, take the time to split and describe each change.
-- **Reverting without checking git log first** — if you're unsure whether a change was already made, `git log --oneline -20` is your first move, not your notes.
+Treat the heartbeat check as a safety net, not a replacement for committing in the moment. See [references/operating-discipline.md](references/operating-discipline.md) for drift rationale and anti-patterns.
 
 ## Subagent Commit Ownership
 
-When using sub-agents for heavy work, the **main session owns all commits** — never the subagent.
-
-### The Rule
-
-Subagents: write and save files only. The main session:
-1. Reviews the output against the quality gate
-2. If it passes → commits with a proper message
-3. Updates the task tracker and daily log in the same step
-4. If it fails → fixes or rejects without committing garbage to history
-
-### Why This Matters
-
-When subagents self-commit:
-- Garbage output lands in git history before anyone reviews it
-- The commit message is written by the subagent, not the session with full context
-- The log update step gets skipped because it happened "elsewhere"
-- Post-compaction, you can't tell if the commit represents good or bad output
-
-**Quality gate and git history are the main session's responsibility. Don't delegate them.**
-
-### In Your AGENTS.md
-
-Add to your Rule 3 (or equivalent delegation rule):
-
-```
-Subagents write/save files only. Main session owns all git commits, quality review, and log entries.
-```
+Subagents write and save files only. The main session reviews output, commits accepted work, and updates task or log state. See [references/operating-discipline.md](references/operating-discipline.md) for the reasoning and AGENTS.md snippet.
 
 ## Mode 2: Checkpoint (Before Risk)
 
-Same as before. Use before any operation you'd regret if it failed.
+Use before any operation you'd regret if it failed.
 
 ```bash
 bash scripts/checkpoint.sh "reason for checkpoint"
 ```
 
-Returns a commit hash — your rollback point.
+This returns the commit hash you can roll back to.
 
 ### When to checkpoint
 
 - Before `update.run` or `config.apply`
-- Before bulk file deletions or moves
-- Before config/architecture changes
+- Before bulk deletions or moves
+- Before config or architecture changes
 - Before any operation that could break the workspace
 
 ## Option C: Dual-Surface Setup
@@ -173,7 +122,7 @@ bash scripts/init-ops-state.sh
 Surface model:
 
 - **Workspace repo:** source, docs, scripts, and durable project artifacts
-- **ops-state repo:** local-only manifests, checkpoint indexes, restore notes
+- **ops-state repo:** local-only manifests, checkpoint indexes, and restore notes
 - **Ignored local payloads:** raw runtime snapshots under `ops-state/snapshots/`
 
 The `ops-state` repo installs `scripts/pre-commit-guard.sh` as a git hook. It blocks remotes, raw snapshots, DB files, session exports, logs, `.env` material, and obvious secret-like staged content. For the full model, see [references/ops-state.md](references/ops-state.md).
@@ -202,8 +151,8 @@ bash scripts/state-checkpoint.sh --dry-run
 Safety rules:
 
 - Refuses workspace paths
-- Refuses ops-state internals
-- Stores raw payloads in ignored local snapshots only
+- Refuses `ops-state` internals
+- Stores raw payloads only in ignored local snapshots
 - Commits manifests and checkpoint indexes to `ops-state`
 
 ## Mode 4: Runtime State Restore
@@ -223,7 +172,7 @@ bash scripts/state-restore.sh <checkpoint-id> --yes-restore
 Restore semantics:
 
 - Overlay restore only; files created after the checkpoint are preserved
-- Refuses workspace and ops-state paths from the manifest
+- Refuses workspace and `ops-state` paths from the manifest
 - Writes a restore note back to the local `ops-state` repo
 
 ## Mode 5: Rollback (When Things Break)
@@ -232,17 +181,17 @@ Restore semantics:
 bash scripts/rollback.sh <commit-hash> "what broke" "why it broke" "which principle it tests" [--prompted]
 ```
 
-Reverts to checkpoint (including cleaning untracked files created after it) AND appends a regression entry to `ops/continuous-improvement/regressions.md`.
+This reverts to the checkpoint, cleans untracked files created after it, and appends a regression entry to `ops/continuous-improvement/regressions.md`.
 
-**All four reason arguments are required.** You can't rollback without logging what went wrong. Failures are data.
+All four reason arguments are required. Failures are data.
 
-The `--prompted` flag marks the regression as 🔴 (human-caught). Default is 🟢 (self-caught). Be honest — the ratio is the scorecard.
+The `--prompted` flag marks the regression as human-caught (`🔴`). Default is self-caught (`🟢`).
 
 ### Regression storage
 
-- **Active (last 10):** `ops/continuous-improvement/regressions.md` — loaded on demand, NOT pinned at boot
-- **Archive:** `ops/continuous-improvement/regression-archive.md` — auto-rotated when active exceeds 10
-- **PRINCIPLES.md** stays small and stable — no volatile data
+- **Active (last 10):** `ops/continuous-improvement/regressions.md`
+- **Archive:** `ops/continuous-improvement/regression-archive.md`
+- **PRINCIPLES.md:** stable rules only, no volatile history
 
 ### Regression format
 
@@ -252,9 +201,9 @@ Auto-appended to `ops/continuous-improvement/regressions.md`:
 N. 🟢 **<what broke>** (<date>) — <what broke> → <why> → Rolled back to <hash>. Tests "<principle>".
 ```
 
-## Mode 6: Isolate (Worktree for Parallel/Risky Work)
+## Mode 6: Isolate (Worktree for Parallel or Risky Work)
 
-Use a separate worktree when you need isolation: large refactors, risky migrations, or parallel feature streams.
+Use a separate worktree for large refactors, risky migrations, or parallel feature streams.
 
 ```bash
 bash scripts/worktree.sh create feat-branch-name
@@ -263,22 +212,17 @@ bash scripts/worktree.sh path feat-branch-name
 cd "$(bash scripts/worktree.sh path feat-branch-name)"
 ```
 
-### Why this mode exists
-
-- Keeps your main workspace clean while experimenting
-- Reduces accidental cross-branch contamination
-- Makes cleanup deterministic (`bash scripts/worktree.sh cleanup`)
-
 ### Rules
 
-- Do not call `git worktree add` directly. Use `scripts/worktree.sh` so `.worktrees/` handling stays consistent.
-- Base new worktrees from the default branch unless you have an explicit reason not to.
+- Do not call `git worktree add` directly; use `scripts/worktree.sh`
+- Base new worktrees from the default branch unless you have a reason not to
 - Before deleting worktrees, make sure changes are merged or intentionally discarded.
-- If you want branch cleanup, use `bash scripts/worktree.sh remove <branch> --prune-branch` (add `--force-branch` only when intentionally discarding unmerged work).
+- For cleanup, use `bash scripts/worktree.sh remove <branch> --prune-branch`
+- Add `--force-branch` only when intentionally discarding unmerged work
 
 ## Mode 7: Release Hygiene (Before Publishing This Skill)
 
-ClawBack itself needs strict version control. Before publishing this repo, validate release metadata:
+Before publishing this repo, validate release metadata:
 
 ```bash
 bash scripts/release-check.sh [base-ref]
@@ -290,136 +234,33 @@ The check enforces:
 - `VERSION` is bumped versus `base-ref` when skill files change
 - `CHANGELOG.md` is updated and includes a section for the current `VERSION`
 
-For full policy and checklist, see [references/versioning.md](references/versioning.md).
+For policy and checklist details, read [references/versioning.md](references/versioning.md).
 
 ## Daily Log Discipline
 
-Daily logs (`memory/YYYY-MM-DD.md`) are **standup updates, not debug transcripts.**
+Daily logs (`memory/YYYY-MM-DD.md`) are standup summaries, not debug transcripts.
 
-### Format per project entry
+- Keep each project entry to 5 lines max
+- Target 60-80 lines total per day; hard cap at 100
+- Put long explanations in git history or the relevant `docs/` file
 
-```markdown
-### Project Name
-- What changed (reference commit hashes for detail)
-- What's blocked
-- What's next
-```
-
-**Max 5 lines per project.** If a fix needs documentation for future reference, write it in the relevant `docs/` file — not the daily log.
-
-### Line budget
-
-- **Target:** 60-80 lines total per day
-- **Hard cap:** 100 lines
-- **If you're over 100:** you're writing debug transcripts. Move the detail to git commits or docs/ files.
-
-### What goes in daily logs vs. elsewhere
-
-| Detail | Where it goes |
-|--------|--------------|
-| "Fixed X, working now" | Daily log (1 line + commit hash) |
-| Step-by-step debugging | Git commit messages (already there if you committed as you went) |
-| How a system works / config details | `docs/` file |
-| Decision and reasoning | Daily log (2-3 lines) or decision ledger |
-| Error messages, stack traces | Nowhere persistent — they served their purpose |
-
-### Example: good vs. bad
-
-**Bad (50 lines for one project):**
-```
-### openclaw-voice
-- Tried Chatterbox TTS, took 30+ seconds per response
-- Found Piper TTS, installed via pip
-- Had to fix ONNX runtime dependency
-- Piper works but output is 22kHz, need to resample
-- Fixed resampling with scipy
-- Then Safari wouldn't play audio
-- Safari needs user gesture for AudioContext
-- Fixed by initializing on button click
-- Then Whisper was getting garbled input
-- Input was 48kHz, Whisper expects 16kHz
-- Added resampling in the receive path too
-- Now it works end to end
-...
-```
-
-**Good (4 lines):**
-```
-### openclaw-voice
-- Two-way voice working: Piper TTS + Whisper STT, Safari frontend (`a2b1f09`..`b8d9e12`)
-- Key fixes: AudioContext user gesture init, 48→16kHz resampling for Whisper
-- Pending: LaunchAgent for auto-start, VAD chunk size fix
-```
+For formatting examples and routing rules, read [references/operating-discipline.md](references/operating-discipline.md).
 
 ## Context Hygiene
 
-Your context window is a finite, non-renewable resource within a session. Treat it like RAM — fill it and you crash.
-
-### The Rule
-
-**If a tool result is large and you need the data, write it to a file immediately.** Don't hold it in context hoping to use it later. Extract what you need, save it, move on.
-
-### Context Budget
-
-Your context window varies by model. As a rule of thumb:
-
-- **Usable working memory** ≈ 60% of total context (the rest is system prompt, compaction reserve, and conversation history)
-- **Single web_fetch result:** 50-400K chars — can consume a huge share of your budget in one call
-- Check your agent config for exact `contextTokens` and `compaction.reserveTokensFloor` values
-
-### Warning Signs
-
-You're about to blow context if:
-- You've done 3+ web_fetch calls without writing results to disk
-- You're holding multiple large tool results while planning what to do with them
-- You're in a long session with lots of back-and-forth AND large tool results
-
-### What To Do
-
-1. **Write to disk immediately.** After any large tool result, extract the data you need and save it to a file.
-2. **Batch external calls.** 50 URLs? Do 5-10 at a time with disk writes between batches.
-3. **Reference, don't repeat.** Once data is in a file, reference the file path — don't paste the contents back.
-4. **Checkpoint before heavy operations.** If a batch job might crash, checkpoint first so you can resume.
+If a tool result is large and you need the data, write it to a file immediately. Batch external calls, reference file paths instead of pasting large results, and checkpoint before long or fragile operations. Detailed heuristics live in [references/operating-discipline.md](references/operating-discipline.md).
 
 ## .gitignore Rules
 
-Every workspace should have these in `.gitignore`:
-
-```
-*.log
-logs/
-*.pyc
-__pycache__/
-node_modules/
-.env
-*.secret
-*.key
-data/
-```
-
-If you find a log file or runtime artifact tracked in git, remove it:
-
-```bash
-git rm --cached path/to/file.log
-echo "path/to/file.log" >> .gitignore
-git commit -m "chore: remove tracked log file, update .gitignore"
-```
+Keep logs, caches, secrets, build artifacts, and other runtime payloads out of git. If something is already tracked, remove it with `git rm --cached` and update `.gitignore`. Baseline patterns and cleanup guidance are in [references/operating-discipline.md](references/operating-discipline.md).
 
 ## Publishing Skills to GitHub
 
-Before pushing any skill repo to GitHub, read the bundled guide [references/skill-publishing.md](references/skill-publishing.md) and follow the canonical workspace SOP at `ops/playbooks/tools/sops/skill-publishing.md`. Keep paths relative in published skill content (no absolute `/Users/...` paths). Never push from the workspace root — workspace git is local-only.
-
-## Versioning & Changelog Discipline
-
-Before publishing updates to this skill, follow [references/versioning.md](references/versioning.md) and run:
-
-```bash
-bash scripts/release-check.sh
-```
+Before pushing any skill repo to GitHub, read the bundled guide [references/skill-publishing.md](references/skill-publishing.md) and follow the canonical workspace SOP at `ops/playbooks/skill-building/sops/skill-publishing.md`. Keep paths relative in published skill content (no absolute `/Users/...` paths). Never push from the workspace root — workspace git is local-only.
 
 ## Crash Recovery
 
-For long-running and batch operations, see [references/crash-recovery.md](references/crash-recovery.md) — covers ephemeral log avoidance, manifest-driven batches, git checkpoint protocol, detached execution, and Plan → Track → Verify.
+For long-running and batch operations, read [references/crash-recovery.md](references/crash-recovery.md).
 
 ## Quick Reference
 
@@ -433,19 +274,19 @@ For long-running and batch operations, see [references/crash-recovery.md](refere
 | Need to rehearse a runtime restore | `bash scripts/state-restore.sh <checkpoint-id> --dry-run` |
 | Something broke after a change | `bash scripts/rollback.sh <hash> "what" "why" "principle"` |
 | Need isolated parallel work | `bash scripts/worktree.sh create <branch>` |
-| Need to cleanup old worktrees | `bash scripts/worktree.sh cleanup` |
+| Need to clean up old worktrees | `bash scripts/worktree.sh cleanup` |
 | Preparing to publish skill updates | `bash scripts/release-check.sh [base-ref]` |
-| Writing daily log | Max 5 lines/project, reference commits, target 60-80 lines total |
-| Found a log file in git | `git rm --cached`, add to `.gitignore` |
+| Writing daily log | Max 5 lines per project, 60-80 lines total |
+| Found a log file in git | `git rm --cached`, then update `.gitignore` |
 
 ## Notes
 
+- Root `README.md`, `CHANGELOG.md`, and `VERSION` stay because `scripts/release-check.sh` and the publish workflow depend on them.
 - Works on any OpenClaw workspace with git initialized
 - Auto-detects workspace root via `git rev-parse --show-toplevel`
 - Never force-pushes or rewrites history
 - Checkpoint messages include timestamp + reason for auditability
-- Regressions logged to `ops/continuous-improvement/regressions.md` (auto-created if missing)
-- Option C adds a local-only `ops-state` repo plus snapshot/restore primitives for selected runtime state
+- Regressions log to `ops/continuous-improvement/regressions.md`
+- Option C adds a local-only `ops-state` repo plus snapshot or restore primitives for selected runtime state
 - `scripts/pre-commit-guard.sh` blocks raw payloads and obvious secrets from `ops-state` git history
 - Worktrees are managed in `.worktrees/` via `scripts/worktree.sh`
-- Release metadata enforcement via `scripts/release-check.sh`
